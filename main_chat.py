@@ -36,6 +36,8 @@ def main_chat(agent, user_name):
             agent.save_messages(history_path)
             print(f"对话历史已保存于{history_path}。")
             continue
+        elif user_prompt == 'q':
+            return
         else:
             response = agent.chat(user_prompt=user_name + "：" + user_prompt if user_name != "" else user_prompt)
 
