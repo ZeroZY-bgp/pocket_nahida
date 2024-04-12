@@ -147,6 +147,7 @@ trainer = DPOTrainer(
 
 trainer.train()
 
+print("End training...")
 model.save_pretrained(log_dir)
 tokenizer.save_pretrained(log_dir)
 

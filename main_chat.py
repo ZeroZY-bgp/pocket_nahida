@@ -30,11 +30,14 @@ def main_chat(agent, user_name):
                 print("空的历史消息，无法重新回答。")
                 continue
         elif user_prompt == 's':
-            # 记录时间
-            now = datetime.now()
-            history_path = "history/" + now.strftime("%Y-%m-%d_%H-%M-%S.json")
-            agent.save_messages(history_path)
-            print(f"对话历史已保存于{history_path}。")
+            if len(agent.messages) > 1:
+                # 记录时间
+                now = datetime.now()
+                history_path = "history/" + agent.messages[1]['content'] + now.strftime("%Y-%m-%d_%H-%M-%S.json")
+                agent.save_messages(history_path)
+                print(f"对话历史已保存于{history_path}。")
+            else:
+                print("没有对话，无法保存。")
             continue
         elif user_prompt == 'q':
             return

@@ -164,7 +164,9 @@ class SelectiveTrainingCallback(TrainerCallback):
             self.train_dataset.subset(indices)
             print(f"Dataset len: {len(self.train_dataset)}")
             if len(self.train_dataset) < end_train_dataset_threshold:
+                print("End training...")
                 model.save_pretrained(log_dir)
+                tokenizer.save_pretrained(log_dir)
                 self.train_dataset.datas.clear()
 
 
@@ -178,5 +180,6 @@ trainer = Trainer(
 
 trainer.train()
 
+print("End training...")
 model.save_pretrained(log_dir)
 tokenizer.save_pretrained(log_dir)

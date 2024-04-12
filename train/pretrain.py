@@ -17,7 +17,7 @@ device = "cuda"
 
 torch_dtype = torch.bfloat16
 use_loss_threshold_filter = True
-loss_threshold = 1.0
+loss_threshold = 2.0
 end_train_dataset_threshold = 0
 
 training_args = TrainingArguments(
@@ -153,8 +153,10 @@ class SelectiveTrainingCallback(TrainerCallback):
             self.train_dataset.copy_from_dataset(self.ori_train_dataset)
             self.train_dataset.subset(indices)
             print(f"Dataset length: {len(self.train_dataset)}")
-            if len(self.train_dataset) < end_train_dataset_threshold:
+            if len(self.train_dataset) <= end_train_dataset_threshold:
+                print("End training...")
                 model.save_pretrained(log_dir)
+                tokenizer.save_pretrained(log_dir)
                 self.train_dataset.datas.clear()
         # 单条数据测试
         random_idx = random.randint(0, len(eval_dataset) - 1)
@@ -175,5 +177,6 @@ trainer = Trainer(
 
 trainer.train()
 
+print("End training...")
 model.save_pretrained(log_dir)
 tokenizer.save_pretrained(log_dir)
