@@ -17,23 +17,27 @@ torch_dtype = torch.bfloat16
 use_loss_threshold_filter = True
 loss_threshold = 2.0
 end_train_dataset_threshold = 0
+use_peft = False
+quantized = False
 
-# peft设置
-peft_config = LoraConfig(
-    task_type=TaskType.CAUSAL_LM,
-    # target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
-    inference_mode=False,
-    r=8,
-    lora_alpha=32,
-    lora_dropout=0.1
-)
+if use_peft:
+    # peft设置
+    peft_config = LoraConfig(
+        task_type=TaskType.CAUSAL_LM,
+        # target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        inference_mode=False,
+        r=8,
+        lora_alpha=32,
+        lora_dropout=0.1
+    )
 
-nf4_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_use_double_quant=True,
-    bnb_4bit_compute_dtype=torch_dtype
-)
+if quantized:
+    nf4_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=torch_dtype
+    )
 
 training_args = TrainingArguments(
     output_dir=log_dir,
@@ -42,6 +46,7 @@ training_args = TrainingArguments(
     logging_steps=10,
     num_train_epochs=16,
     save_strategy="no",
+    warmup_steps=10,
     learning_rate=1e-4,
     gradient_checkpointing=False,
     logging_dir=log_dir,
@@ -52,10 +57,11 @@ training_args = TrainingArguments(
 model = AutoModelForCausalLM.from_pretrained(ori_model_path,
                                              torch_dtype=torch_dtype,
                                              trust_remote_code=True,
-                                             quantization_config=nf4_config
+                                             quantization_config=nf4_config if quantized else None
                                              )
-model = get_peft_model(model, peft_config)
-model.print_trainable_parameters()
+if use_peft:
+    model = get_peft_model(model, peft_config)
+    model.print_trainable_parameters()
 # model.enable_input_require_grads()
 print(model)
 

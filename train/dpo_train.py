@@ -13,7 +13,7 @@ dataset_path = "datas/dpo.json"
 ori_model_path = r""
 
 log_dir = "result/qwen1.5/1.8B/dpo"
-device = "auto"
+# device = "cuda"
 
 use_peft = False
 torch_dtype = torch.bfloat16
@@ -47,7 +47,6 @@ training_args = TrainingArguments(
 
 # 模型
 model = AutoModelForCausalLM.from_pretrained(ori_model_path,
-                                             device_map=device,
                                              torch_dtype=torch_dtype,
                                              trust_remote_code=True
                                              )

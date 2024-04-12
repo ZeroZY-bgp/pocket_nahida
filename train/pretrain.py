@@ -11,7 +11,7 @@ from utils import load_json, calc_total_params
 
 
 dataset_path = "datas/pretrain.json"
-ori_model_path = ""
+ori_model_path = "Qwen/Qwen1.5-1.8B-Chat"
 log_dir = "result/qwen1.5/1.8B/pretrain"
 device = "cuda"
 
@@ -22,6 +22,7 @@ end_train_dataset_threshold = 0
 
 training_args = TrainingArguments(
     output_dir=log_dir,
+    bf16=True,
     learning_rate=1e-5,
     # auto_find_batch_size=True,
     per_device_train_batch_size=1,
