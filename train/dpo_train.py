@@ -10,10 +10,9 @@ from utils import load_json
 
 
 dataset_path = "datas/dpo.json"
-ori_model_path = r""
+ori_model_path = r"result/qwen1.5/1.8B/sft"
 
 log_dir = "result/qwen1.5/1.8B/dpo"
-# device = "cuda"
 
 use_peft = False
 torch_dtype = torch.bfloat16
@@ -101,6 +100,8 @@ def multi_turn_process_func(messages):
 
 json_datas = load_json(dataset_path)
 train_dataset = Dataset.from_dict(json_datas)
+
+# device = "cuda"
 
 
 # class SelectiveTrainingCallback(TrainerCallback):
