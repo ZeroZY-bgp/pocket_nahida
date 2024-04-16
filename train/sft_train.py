@@ -4,18 +4,18 @@ import torch
 from torch.utils.data import Dataset as TorchDataset
 from peft import LoraConfig, TaskType, get_peft_model
 from tqdm import tqdm
-from transformers import TrainingArguments, Trainer, AutoTokenizer, TrainerCallback, AutoModelForCausalLM, DataCollatorForSeq2Seq, BitsAndBytesConfig
+from transformers import TrainingArguments, Trainer, AutoTokenizer, TrainerCallback, AutoModelForCausalLM, \
+    DataCollatorForSeq2Seq, BitsAndBytesConfig
 
 from utils import load_json
 
 dataset_path = "datas/sft.json"
-ori_model_path = ""
+ori_model_path = "result/qwen1.5/1.8B/pretrain"
 log_dir = "result/qwen1.5/1.8B/sft"
-device = "cuda"
 
 torch_dtype = torch.bfloat16
-use_loss_threshold_filter = True
-loss_threshold = 2.0
+use_loss_threshold_filter = False
+loss_threshold = 2.5
 end_train_dataset_threshold = 0
 use_peft = False
 quantized = False
@@ -41,16 +41,16 @@ if quantized:
 
 training_args = TrainingArguments(
     output_dir=log_dir,
-    per_device_train_batch_size=1,
-    gradient_accumulation_steps=4,
+    per_device_train_batch_size=2,
+    gradient_accumulation_steps=8,
     logging_steps=10,
-    num_train_epochs=16,
+    num_train_epochs=3,
     save_strategy="no",
-    warmup_steps=10,
-    learning_rate=1e-4,
+    warmup_steps=0,
+    learning_rate=2e-5,
     gradient_checkpointing=False,
     logging_dir=log_dir,
-    save_total_limit=3
+    save_total_limit=1
 )
 
 # 模型
@@ -133,6 +133,8 @@ all_data = load_json(dataset_path)
 train_dataset = MessagesDataset(all_data)
 eval_dataset = MessagesDataset(all_data)
 
+device = "cuda"
+
 
 class SelectiveTrainingCallback(TrainerCallback):
     def __init__(self, model, train_dataset, loss_threshold):
@@ -163,8 +165,7 @@ class SelectiveTrainingCallback(TrainerCallback):
             self.train_dataset.copy_from_dataset(self.ori_train_dataset)
             self.train_dataset.subset(indices)
             print(f"Dataset len: {len(self.train_dataset)}")
-            if len(self.train_dataset) < end_train_dataset_threshold:
-                print("End training...")
+            if len(self.train_dataset) <= end_train_dataset_threshold:
                 model.save_pretrained(log_dir)
                 tokenizer.save_pretrained(log_dir)
                 self.train_dataset.datas.clear()
@@ -175,11 +176,10 @@ trainer = Trainer(
     args=training_args,
     train_dataset=train_dataset,
     data_collator=DataCollatorForSeq2Seq(tokenizer=tokenizer, padding=True),
-    callbacks=[SelectiveTrainingCallback(model, train_dataset, loss_threshold)]  # 添加自定义回调
+    callbacks=[SelectiveTrainingCallback(model, train_dataset, loss_threshold)]
 )
 
 trainer.train()
 
-print("End training...")
 model.save_pretrained(log_dir)
 tokenizer.save_pretrained(log_dir)

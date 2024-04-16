@@ -9,37 +9,36 @@ from transformers import TrainingArguments, Trainer, AutoTokenizer, TrainerCallb
 
 from utils import load_json, calc_total_params
 
-
 dataset_path = "datas/pretrain.json"
 ori_model_path = "Qwen/Qwen1.5-1.8B-Chat"
 log_dir = "result/qwen1.5/1.8B/pretrain"
-device = "cuda"
 
 torch_dtype = torch.bfloat16
-use_loss_threshold_filter = True
+use_loss_threshold_filter = False
 loss_threshold = 2.0
-end_train_dataset_threshold = 0
+end_train_dataset_threshold = 100
 
 training_args = TrainingArguments(
     output_dir=log_dir,
+    learning_rate=1e-4,
     bf16=True,
-    learning_rate=1e-5,
     # auto_find_batch_size=True,
-    per_device_train_batch_size=1,
-    gradient_accumulation_steps=1,
-    num_train_epochs=10,
+    per_device_train_batch_size=2,
+    gradient_accumulation_steps=8,
+    num_train_epochs=3,
     weight_decay=0.01,
-    warmup_steps=10,
+    # warmup_steps=0,
+    warmup_ratio=0.1,
     evaluation_strategy="no",
-    eval_steps=200,
-    save_strategy="epoch",
+    save_strategy="no",
     logging_dir=log_dir,
-    save_total_limit=2,
+    save_total_limit=1,
     gradient_checkpointing=False,
 )
 
 # 加载原始模型
 model = AutoModelForCausalLM.from_pretrained(ori_model_path,
+                                             device_map="auto",
                                              torch_dtype=torch.bfloat16,
                                              trust_remote_code=True)
 # model.enable_input_require_grads()
@@ -49,6 +48,8 @@ calc_total_params(model)
 # 分词器
 tokenizer_path = model.config.name_or_path
 tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=False, trust_remote_code=True)
+
+device = "cuda"
 
 
 def inference(prompt):
@@ -154,7 +155,6 @@ class SelectiveTrainingCallback(TrainerCallback):
             self.train_dataset.subset(indices)
             print(f"Dataset length: {len(self.train_dataset)}")
             if len(self.train_dataset) <= end_train_dataset_threshold:
-                print("End training...")
                 model.save_pretrained(log_dir)
                 tokenizer.save_pretrained(log_dir)
                 self.train_dataset.datas.clear()
@@ -172,11 +172,10 @@ trainer = Trainer(
     args=training_args,
     train_dataset=train_dataset,
     data_collator=collate_fn,
-    callbacks=[SelectiveTrainingCallback(model, train_dataset, loss_threshold)]  # 添加自定义回调
+    callbacks=[SelectiveTrainingCallback(model, train_dataset, loss_threshold)]
 )
 
 trainer.train()
 
-print("End training...")
 model.save_pretrained(log_dir)
 tokenizer.save_pretrained(log_dir)
