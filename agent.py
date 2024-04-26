@@ -136,9 +136,11 @@ class RoleAgent:
             self.pre_mem_prompt = mem_prompt
             if self.show_rag_detail:
                 print(mem_prompt)
-            self.messages[0]['content'] = self.system_prompt + '\n\n' + mem_prompt
-        else:
-            self.messages[0]['content'] = self.system_prompt
+            # self.messages[0]['content'] = self.system_prompt + '\n\n' + mem_prompt
+
+            user_prompt = mem_prompt + '\n\n' + user_prompt
+        # else:
+        #     self.messages[0]['content'] = self.system_prompt
 
         # LLM通信
         self.messages.append({"role": "user", "content": user_prompt})
