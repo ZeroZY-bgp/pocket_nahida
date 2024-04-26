@@ -41,9 +41,9 @@ if quantized:
 
 training_args = TrainingArguments(
     output_dir=log_dir,
+    logging_steps=1,
     per_device_train_batch_size=2,
     gradient_accumulation_steps=8,
-    logging_steps=10,
     num_train_epochs=3,
     save_strategy="no",
     warmup_steps=0,

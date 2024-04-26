@@ -20,6 +20,7 @@ end_train_dataset_threshold = 100
 
 training_args = TrainingArguments(
     output_dir=log_dir,
+    logging_steps=1,
     learning_rate=1e-4,
     bf16=True,
     # auto_find_batch_size=True,
@@ -38,10 +39,9 @@ training_args = TrainingArguments(
 
 # 加载原始模型
 model = AutoModelForCausalLM.from_pretrained(ori_model_path,
-                                             device_map="auto",
-                                             torch_dtype=torch.bfloat16,
+                                             torch_dtype=torch_dtype,
                                              trust_remote_code=True)
-# model.enable_input_require_grads()
+model.enable_input_require_grads()
 print(model)
 calc_total_params(model)
 
