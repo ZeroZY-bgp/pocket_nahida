@@ -24,7 +24,7 @@ if use_peft:
     # peft设置
     peft_config = LoraConfig(
         task_type=TaskType.CAUSAL_LM,
-        # target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
         inference_mode=False,
         r=8,
         lora_alpha=32,
@@ -45,10 +45,10 @@ training_args = TrainingArguments(
     per_device_train_batch_size=2,
     gradient_accumulation_steps=8,
     num_train_epochs=3,
+    warmup_ratio=0.01,
     save_strategy="no",
-    warmup_steps=0,
     learning_rate=2e-5,
-    gradient_checkpointing=False,
+    gradient_checkpointing=True,
     logging_dir=log_dir,
     save_total_limit=1
 )
@@ -62,7 +62,8 @@ model = AutoModelForCausalLM.from_pretrained(ori_model_path,
 if use_peft:
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
-# model.enable_input_require_grads()
+
+model.enable_input_require_grads()
 print(model)
 
 # 分词器
@@ -72,7 +73,6 @@ tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=False, trust_
 start_token_id = tokenizer.convert_tokens_to_ids('<|im_start|>')
 end_token_id = tokenizer.convert_tokens_to_ids('<|im_end|>')
 assistant_token_id = tokenizer.convert_tokens_to_ids('assistant')
-newline_token_id = tokenizer.convert_tokens_to_ids('\n')
 
 
 def multi_turn_process_func(messages):
@@ -133,7 +133,7 @@ all_data = load_json(dataset_path)
 train_dataset = MessagesDataset(all_data)
 eval_dataset = MessagesDataset(all_data)
 
-device = "cuda"
+test_device = "cuda"
 
 
 class SelectiveTrainingCallback(TrainerCallback):
@@ -149,9 +149,9 @@ class SelectiveTrainingCallback(TrainerCallback):
         losses = []
         for d in tqdm(self.ori_train_dataset):
             with torch.no_grad():
-                outputs = self.model(input_ids=d['input_ids'].unsqueeze(0).to(device),
-                                     attention_mask=d['attention_mask'].unsqueeze(0).to(device),
-                                     labels=d["labels"].unsqueeze(0).to(device))
+                outputs = self.model(input_ids=d['input_ids'].unsqueeze(0).to(test_device),
+                                     attention_mask=d['attention_mask'].unsqueeze(0).to(test_device),
+                                     labels=d["labels"].unsqueeze(0).to(test_device))
                 total_loss += outputs.loss
                 losses.append(outputs.loss.item())
         test_avg_loss = total_loss / len(self.ori_train_dataset)
