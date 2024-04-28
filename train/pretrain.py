@@ -3,9 +3,10 @@ import random
 
 import torch
 from torch.nn.utils.rnn import pad_sequence
-from torch.utils.data import Dataset as torchDataset
+from torch.utils.data import Dataset as TorchDataset
+from peft import LoraConfig, TaskType, get_peft_model
 from tqdm import tqdm
-from transformers import TrainingArguments, Trainer, AutoTokenizer, TrainerCallback, AutoModelForCausalLM
+from transformers import TrainingArguments, Trainer, AutoTokenizer, TrainerCallback, AutoModelForCausalLM, BitsAndBytesConfig
 
 from utils import load_json, calc_total_params
 
@@ -17,30 +18,52 @@ torch_dtype = torch.bfloat16
 use_loss_threshold_filter = False
 loss_threshold = 2.0
 end_train_dataset_threshold = 100
+use_peft = False
+quantized = False
+
+if use_peft:
+    # peft设置
+    peft_config = LoraConfig(
+        task_type=TaskType.CAUSAL_LM,
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        inference_mode=False,
+        r=8,
+        lora_alpha=32,
+        lora_dropout=0.1
+    )
+
+if quantized:
+    nf4_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=torch_dtype
+    )
 
 training_args = TrainingArguments(
     output_dir=log_dir,
     logging_steps=1,
     learning_rate=1e-4,
     bf16=True,
-    # auto_find_batch_size=True,
-    per_device_train_batch_size=2,
+    per_device_train_batch_size=1,
     gradient_accumulation_steps=8,
     num_train_epochs=3,
-    weight_decay=0.01,
-    # warmup_steps=0,
-    warmup_ratio=0.1,
+    warmup_ratio=0.01,
     evaluation_strategy="no",
     save_strategy="no",
     logging_dir=log_dir,
     save_total_limit=1,
-    gradient_checkpointing=False,
+    gradient_checkpointing=True,
 )
 
 # 加载原始模型
 model = AutoModelForCausalLM.from_pretrained(ori_model_path,
                                              torch_dtype=torch_dtype,
                                              trust_remote_code=True)
+if use_peft:
+    model = get_peft_model(model, peft_config)
+    model.print_trainable_parameters()
+
 model.enable_input_require_grads()
 print(model)
 calc_total_params(model)
@@ -49,15 +72,15 @@ calc_total_params(model)
 tokenizer_path = model.config.name_or_path
 tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=False, trust_remote_code=True)
 
-device = "cuda"
+test_device = "cuda"
 
 
 def inference(prompt):
     inputs = tokenizer.encode_plus(prompt, add_special_tokens=True, return_tensors="pt")
 
     with torch.no_grad():
-        outputs = model.generate(input_ids=inputs["input_ids"].to(device),
-                                 attention_mask=inputs["attention_mask"].to(device),
+        outputs = model.generate(input_ids=inputs["input_ids"].to(test_device),
+                                 attention_mask=inputs["attention_mask"].to(test_device),
                                  max_length=512)
     return tokenizer.decode(outputs[0], skip_special_tokens=False)
 
@@ -85,7 +108,7 @@ def collate_fn(batch):
         }
 
 
-class PretrainDataset(torchDataset):
+class PretrainDataset(TorchDataset):
 
     def __init__(self, data, do_train=False):
         self.datas = data
@@ -138,9 +161,9 @@ class SelectiveTrainingCallback(TrainerCallback):
         losses = []
         for d in tqdm(self.ori_train_dataset):
             with torch.no_grad():
-                outputs = self.model(input_ids=d['input_ids'].unsqueeze(0).to(device),
-                                     attention_mask=d['attention_mask'].unsqueeze(0).to(device),
-                                     labels=d["labels"].unsqueeze(0).to(device))
+                outputs = self.model(input_ids=d['input_ids'].unsqueeze(0).to(test_device),
+                                     attention_mask=d['attention_mask'].unsqueeze(0).to(test_device),
+                                     labels=d["labels"].unsqueeze(0).to(test_device))
                 total_loss += outputs.loss
                 losses.append(outputs.loss.item())
         test_avg_loss = total_loss / len(self.ori_train_dataset)
