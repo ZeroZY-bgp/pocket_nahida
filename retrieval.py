@@ -1,11 +1,45 @@
 from langchain_community.vectorstores.faiss import FAISS
 from langchain.text_splitter import CharacterTextSplitter
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import torch
+
+
+class Reranker:
+
+    def __init__(self, reranker_model_name, device):
+        self.device = device
+        self.tokenizer = AutoTokenizer.from_pretrained(reranker_model_name)
+        self.model = AutoModelForSequenceClassification.from_pretrained(reranker_model_name, device_map=device)
+        self.model.eval()
+
+    @staticmethod
+    def make_pairs(query, docs):
+        pairs = []
+        for doc in docs:
+            new_pair = [query, doc]
+            pairs.append(new_pair)
+        return pairs
+
+    def calc_score(self, query, docs):
+        pairs = self.make_pairs(query, docs)
+        with torch.no_grad():
+            inputs = self.tokenizer(pairs, padding=True, truncation=True, return_tensors='pt', max_length=1024).\
+                to(self.device)
+            scores = self.model(**inputs, return_dict=True).logits.view(-1, ).float()
+        res = []
+        for i in range(len(docs)):
+            res.append([scores[i].item(), docs[i]])
+        return res
 
 
 class Retrieval:
 
-    def __init__(self, embedding_model):
-        self.embedding_model = embedding_model
+    def __init__(self, embedding_model_name, embedding_device,
+                 reranker_model_name, reranker_device):
+        self.embedding_model = HuggingFaceEmbeddings(model_name=embedding_model_name,
+                                                     model_kwargs={'device': embedding_device})
+        self.reranker = Reranker(reranker_model_name, reranker_device)
         self.documents = None
         self.split_docs = None
         self.faiss = FAISS
@@ -49,13 +83,18 @@ class Retrieval:
     def save_index(self, path):
         self.vector_store.save_local(path)
 
-    def search(self, query, top_k=3):
+    def search_by_embedding(self, query, top_k=3):
         docs_and_scores = self.vector_store.similarity_search(query, top_k)
         return docs_and_scores
 
-    def search_and_return_string(self, query, top_k=3):
-        docs_and_scores = self.search(query, top_k)
-        res = ""
+    def search(self, query, reranker_query, embedding_top_k=6, reranker_top_k=3):
+        # 向量数据库搜索
+        docs_and_scores = self.search_by_embedding(query, embedding_top_k)
+        # reranker打分排序，取前top_k个
+        docs = []
         for doc in docs_and_scores:
-            res += (doc.page_content + '\n' + "=" * 10 + '\n')
+            docs.append(doc.page_content)
+        rerank_res = self.reranker.calc_score(reranker_query, docs)
+        sorted_rerank_res = sorted(rerank_res, key=lambda x: x[0], reverse=True)
+        res = sorted_rerank_res[:reranker_top_k]
         return res
