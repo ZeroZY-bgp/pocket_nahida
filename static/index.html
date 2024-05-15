@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #container {
+            display: flex;
+            gap: 20px;
+        }
+        #chatbox {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 800px; /* 增加宽度 */
+            max-width: 100%;
+            padding: 20px;
+            position: relative;
+        }
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #ffffff;
+        }
+        #messages {
+            height: 400px; /* 增加高度 */
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            background-color: #2b2b2b;
+            color: #dcdcdc;
+            display: flex;
+            flex-direction: column;
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+            backdrop-filter: blur(5px); /* 添加模糊效果 */
+        }
+        #messages .message-container {
+            display: flex;
+            align-items: flex-start;
+            margin: 5px 0;
+        }
+        #messages .message {
+            padding: 10px;
+            border-radius: 4px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        #messages .bot {
+            background-color: #444;
+            color: white;
+            text-align: left;
+        }
+        #messages .user {
+            background-color: #007bff;
+            color: white;
+            text-align: right;
+            margin-left: auto;
+        }
+        #messages .avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        #messages .user .avatar {
+            margin-right: 0;
+            margin-left: 10px;
+        }
+        #inputContainer {
+            display: flex;
+            align-items: flex-start; /* 调整对齐方式 */
+            gap: 10px; /* 增加间距 */
+        }
+        #userInput {
+            flex: 1; /* 使输入框填满剩余空间 */
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background-color: #2b2b2b;
+            color: #dcdcdc;
+            box-sizing: border-box;
+            resize: none; /* 禁用手动调整大小 */
+            height: 40px; /* 固定输入框高度 */
+            max-height: 80px; /* 设置最大高度 */
+            overflow-y: auto; /* 启用垂直滚动条 */
+        }
+        #imageInput, #avatarInput, #botAvatarInput, #backgroundInput {
+            display: none;
+        }
+        button {
+            width: 130px; /* 固定按钮宽度 */
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            flex-shrink: 0; /* 防止按钮拉伸 */
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #settings {
+            display: none; /* 初始隐藏 */
+            flex-direction: column;
+            gap: 10px;
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 130px; /* 确保宽度与按钮一致 */
+        }
+        #settingsToggle, #nameSettingsToggle {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 150px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        #settingsToggle:hover, #nameSettingsToggle:hover {
+            background-color: #0056b3;
+        }
+        #nameSettings {
+            display: none; /* 初始隐藏 */
+            flex-direction: column;
+            gap: 10px;
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 400px; /* 确保足够宽度以容纳输入框和按钮 */
+        }
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between; /* 确保输入框和按钮对齐 */
+            width: 100%; /* 使输入框和按钮在同一行内 */
+        }
+        .input-row input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background-color: #2b2b2b;
+            color: #dcdcdc;
+            height: 40px;
+        }
+        .input-row button {
+            height: 40px;
+            white-space: nowrap; /* 防止文本换行 */
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="chatbox">
+<!--            <h1>Chat with our Bot</h1>-->
+            <div id="messages"></div>
+            <div id="inputContainer">
+                <textarea id="userInput" placeholder="Type your message here..." rows="1"></textarea>
+                <input type="file" id="imageInput" accept="image/*" onchange="sendImage()"/>
+                <button onclick="sendMessage()">Send</button>
+                <button onclick="document.getElementById('imageInput').click()">Upload Image</button>
+                <button onclick="clearMessages()">Clear Messages</button>
+            </div>
+        </div>
+        <div id="settingsContainer">
+            <button id="settingsToggle" onclick="toggleSettings()">Upload Settings</button>
+            <div id="settings">
+                <input type="file" id="avatarInput" accept="image/*" onchange="uploadAvatar()"/>
+                <button onclick="document.getElementById('avatarInput').click()">Upload Avatar</button>
+                <input type="file" id="botAvatarInput" accept="image/*" onchange="uploadBotAvatar()"/>
+                <button onclick="document.getElementById('botAvatarInput').click()">Upload Bot Avatar</button>
+                <input type="file" id="backgroundInput" accept="image/*" onchange="uploadBackground()"/>
+                <button onclick="document.getElementById('backgroundInput').click()">Upload Background</button>
+            </div>
+            <button id="nameSettingsToggle" onclick="toggleNameSettings()">Name Settings</button>
+            <div id="nameSettings">
+                <div class="input-row">
+                    <input type="text" id="usernameInput" placeholder="Enter User Name"/>
+                    <button onclick="updateUsername()">Set User Name</button>
+                </div>
+                <div class="input-row">
+                    <input type="text" id="botnameInput" placeholder="Enter Bot Name"/>
+                    <button onclick="updateBotname()">Set Bot Name</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let userAvatar = 'static/user_avatar.png';
+        let botAvatar = 'static/bot_avatar.png';
+        let chatBackground = '';
+        let userName = 'You';
+        let botName = 'Bot';
+
+        function toggleSettings() {
+            const settings = document.getElementById('settings');
+            if (settings.style.display === 'none' || settings.style.display === '') {
+                settings.style.display = 'flex';
+            } else {
+                settings.style.display = 'none';
+            }
+        }
+
+        function toggleNameSettings() {
+            const nameSettings = document.getElementById('nameSettings');
+            if (nameSettings.style.display === 'none' || nameSettings.style.display === '') {
+                nameSettings.style.display = 'flex';
+            } else {
+                nameSettings.style.display = 'none';
+            }
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput').value;
+            if (userInput.trim() === '') return;
+
+            displayMessage(userName, userInput, 'user');
+            document.getElementById('userInput').value = '';
+            document.getElementById('userInput').style.height = '40px'; // 重置输入框高度
+
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: userInput })
+            });
+            const data = await response.json();
+            displayMessage(botName, data.response, 'bot');
+        }
+
+        async function sendImage() {
+            const imageInput = document.getElementById('imageInput');
+            const file = imageInput.files[0];
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const response = await fetch('/upload_image', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            displayImage(userName, URL.createObjectURL(file), 'user');
+            displayImage(botName, data.response_image_url, 'bot');
+            imageInput.value = '';
+        }
+
+        async function uploadAvatar() {
+            const avatarInput = document.getElementById('avatarInput');
+            const file = avatarInput.files[0];
+            const formData = new FormData();
+            formData.append('avatar', file);
+
+            const response = await fetch('/upload_avatar', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            userAvatar = data.avatar_url;
+            applySettings(); // 更新设置后立即应用
+            avatarInput.value = '';
+        }
+
+        async function uploadBotAvatar() {
+            const botAvatarInput = document.getElementById('botAvatarInput');
+            const file = botAvatarInput.files[0];
+            const formData = new FormData();
+            formData.append('avatar', file);
+
+            const response = await fetch('/upload_bot_avatar', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            botAvatar = data.avatar_url;
+            applySettings(); // 更新设置后立即应用
+            botAvatarInput.value = '';
+        }
+
+        async function uploadBackground() {
+            const backgroundInput = document.getElementById('backgroundInput');
+            const file = backgroundInput.files[0];
+            const formData = new FormData();
+            formData.append('background', file);
+
+            const response = await fetch('/upload_background', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            chatBackground = data.background_url;
+            applySettings(); // 更新设置后立即应用
+            backgroundInput.value = '';
+        }
+
+        async function updateUsername() {
+            userName = document.getElementById('usernameInput').value || 'You';
+            await saveSettings();
+        }
+
+        async function updateBotname() {
+            botName = document.getElementById('botnameInput').value || 'Bot';
+            await saveSettings();
+        }
+
+        function displayMessage(sender, message, type) {
+            const messagesDiv = document.getElementById('messages');
+            const messageContainer = document.createElement('div');
+            messageContainer.className = 'message-container';
+
+            const avatar = document.createElement('img');
+            avatar.className = 'avatar';
+            avatar.src = type === 'user' ? userAvatar : botAvatar;
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = `<p><strong>${sender}:</strong> ${message}</p>`;
+
+            if (type === 'user') {
+                messageContainer.appendChild(messageDiv);
+                messageContainer.appendChild(avatar);
+            } else {
+                messageContainer.appendChild(avatar);
+                messageContainer.appendChild(messageDiv);
+            }
+
+            messagesDiv.appendChild(messageContainer);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function displayImage(sender, imageUrl, type) {
+            const messagesDiv = document.getElementById('messages');
+            const messageContainer = document.createElement('div');
+            messageContainer.className = 'message-container';
+
+            const avatar = document.createElement('img');
+            avatar.className = 'avatar';
+            avatar.src = type === 'user' ? userAvatar : botAvatar;
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = `<p><strong>${sender}:</strong></p><img src="${imageUrl}" alt="image"/>`;
+
+            if (type === 'user') {
+                messageContainer.appendChild(messageDiv);
+                messageContainer.appendChild(avatar);
+            } else {
+                messageContainer.appendChild(avatar);
+                messageContainer.appendChild(messageDiv);
+            }
+
+            messagesDiv.appendChild(messageContainer);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function clearMessages() {
+            document.getElementById('messages').innerHTML = '';
+        }
+
+        async function fetchMessages() {
+            const response = await fetch('/get_messages');
+            const data = await response.json();
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = '';  // 清空消息区域
+            data.messages.forEach(msg => {
+                if (msg.message) {
+                    displayMessage(msg.sender === 'user' ? userName : botName, msg.message, msg.sender);
+                } else if (msg.image_url) {
+                    displayImage(msg.sender === 'user' ? userName : botName, msg.image_url, msg.sender);
+                }
+            });
+        }
+
+        async function fetchSettings() {
+            const response = await fetch('/get_settings');
+            const data = await response.json();
+            userAvatar = data.user_avatar;
+            botAvatar = data.bot_avatar;
+            chatBackground = data.chat_background;
+            userName = data.user_name || 'You';
+            botName = data.bot_name || 'Bot';
+
+            // 检查文件是否存在
+            const checkFileExists = async (url) => {
+                const res = await fetch(url, { method: 'HEAD' });
+                return res.ok;
+            };
+
+            if (!(await checkFileExists(userAvatar))) {
+                userAvatar = 'static/user_avatar.png';
+            }
+            if (!(await checkFileExists(botAvatar))) {
+                botAvatar = 'static/bot_avatar.png';
+            }
+            if (!(await checkFileExists(chatBackground))) {
+                chatBackground = '';
+            }
+
+            applySettings(); // 应用检查后的设置
+        }
+
+        function applySettings() {
+            document.getElementById('messages').style.backgroundImage = chatBackground ? `url(${chatBackground})` : 'none';
+            // 更新聊天记录中的头像
+            document.querySelectorAll('.user .avatar').forEach(avatar => avatar.src = userAvatar);
+            document.querySelectorAll('.bot .avatar').forEach(avatar => avatar.src = botAvatar);
+        }
+
+        async function saveSettings() {
+            const settings = {
+                user_avatar: userAvatar,
+                bot_avatar: botAvatar,
+                chat_background: chatBackground,
+                user_name: userName,
+                bot_name: botName
+            };
+
+            await fetch('/save_settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(settings)
+            });
+        }
+
+        // 定期检查新消息
+        setInterval(fetchMessages, 3000);
+
+        document.getElementById('userInput').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            } else if (event.key === 'Enter' && event.shiftKey) {
+                // 保持输入框高度不变，使用滚动条
+                setTimeout(() => {
+                    if (this.scrollHeight > this.clientHeight) {
+                        this.style.overflowY = 'auto';
+                    }
+                }, 0);
+            }
+        });
+
+        // 初次加载时获取消息和设置
+        fetchMessages();
+        fetchSettings();
+    </script>
+</body>
+</html>
