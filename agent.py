@@ -1,12 +1,12 @@
-from langchain_community.embeddings import HuggingFaceEmbeddings
 import jieba
 import jieba.posseg as pseg
 import copy
 import json
+from datetime import datetime
 
 import utils
 from retrieval import Retrieval
-from model import QwenModel
+from model import QwenModel, GPTModel
 
 
 class RoleAgent:
@@ -17,12 +17,13 @@ class RoleAgent:
                  config):
 
         self.role_name = role_name
+        self.user_name = "旅行者"
         self.system_prompt = system_prompt
 
-        embedding_model = HuggingFaceEmbeddings(model_name=config.embedding_model_name_or_path,
-                                                model_kwargs={'device': config.embedding_device})
+        self.first_user_prompt = ""  # 记录第一条用户提问，用于保存对话历史
 
-        self.retrieval = Retrieval(embedding_model)
+        self.retrieval = Retrieval(config.embedding_model_name_or_path, config.embedding_device,
+                                   config.reranker_model_name_or_path, config.reranker_device)
 
         if config.first_load_memory and config.first_load_kb_path and config.idx_kb_path:
             self.first_load_memory(kb_path=config.first_load_kb_path,
@@ -36,16 +37,24 @@ class RoleAgent:
         ]
         self.messages = copy.deepcopy(self.default_messages)
 
+        self.embedding_top_k = config.embedding_top_k
         self.rag_top_k = config.rag_top_k
         self.top_k_per_word = config.top_k_per_word
         self.kb_max_len = config.kb_max_len
         self.temperature = config.temperature
         self.max_new_tokens = config.max_new_tokens
-        self.model = QwenModel(cache_dir=config.model_cache_dir,
-                               model_name_or_path=config.model_name_or_path,
-                               quantized=config.model_quantized,
-                               device=config.llm_device,
-                               token=config.hf_token)
+
+        if config.model_name_or_path in ["gpt-3.5-turbo", "gpt-4-turbo", "gpt-4o"]:
+            self.model = GPTModel(model_name='gpt-4o',
+                                  api_key=config.gpt_api_key,
+                                  max_token=config.max_new_tokens,
+                                  temperature=config.temperature)
+        else:
+            self.model = QwenModel(cache_dir=config.model_cache_dir,
+                                   model_name_or_path=config.model_name_or_path,
+                                   quantized=config.model_quantized,
+                                   device=config.llm_device,
+                                   token=config.hf_token)
 
         if config.keywords_path:
             self.genshin_words = utils.load_json(config.keywords_path)
@@ -62,6 +71,9 @@ class RoleAgent:
             self.retrieval.load_txt(kb_path)
         self.retrieval.save_index(idx_kb_path)
 
+    def set_user_name(self, user_name):
+        self.user_name = user_name
+
     @staticmethod
     def _load_n_words(words):
         for word in words:
@@ -71,13 +83,13 @@ class RoleAgent:
         with open(path, 'r', encoding='utf-8') as file:
             self.messages = json.load(file)
 
-    def save_messages(self, path):
-        messages = copy.deepcopy(self.messages)
-        # 去掉记忆部分，只保留原始系统提示词
-        messages[0]['content'] = self.system_prompt
+    def save_messages(self):
+        now = datetime.now()
+        path = "history/" + self.first_user_prompt + " " + now.strftime("%Y-%m-%d_%H-%M-%S.json")
         # 保存成json
         with open(path, 'w', encoding='utf-8') as file:
-            json.dump(messages, file, indent=4, ensure_ascii=False)
+            json.dump(self.messages, file, indent=4, ensure_ascii=False)
+        return path
 
     def clear_messages(self):
         self.messages = copy.deepcopy(self.default_messages)
@@ -99,6 +111,10 @@ class RoleAgent:
         return res
 
     def chat(self, user_prompt):
+        # 记录潜在的文件名
+        if len(self.messages) == 1:
+            self.first_user_prompt = user_prompt
+
         # RAG策略
         if self.rag_top_k > 0:
             # 提取名词
@@ -110,37 +126,22 @@ class RoleAgent:
                 if n not in n_lst:
                     n_lst.append(n)
 
-            # RAG
-            # if len(n_lst) < 2:
-            #     mem_prompt = self.pre_mem_prompt
-            # else:
-            #     n_prompt = " ".join(n_lst)
-            #     # search_prompt = n_prompt + '\n' + user_prompt
-            #     search_prompt = n_prompt
-            #     # print(search_prompt)
-            #
-            #     mem_prompt = self.role_name + "的记忆片段：\n" + "=" * 6 + "\n"
-            #     mem_prompt += ("脑海中的关键词：" + n_prompt + '\n\n')
-            #     mem_prompt += self._search_relevant_memory(search_prompt)
-            #
-            #     self.pre_mem_prompt = mem_prompt
+            if len(n_lst) == 0:  # 如果没有名词，则加入名词为角色名字
+                n_lst.append(self.role_name)
+
             n_prompt = " ".join(n_lst)
             # search_prompt = n_prompt + '\n' + user_prompt
             search_prompt = n_prompt
-            # print(search_prompt)
 
             mem_prompt = self.role_name + "的记忆片段：\n" + "=" * 6 + "\n"
             mem_prompt += ("脑海中的关键词：" + n_prompt + '\n\n')
-            mem_prompt += self._search_relevant_memory(search_prompt)
+            mem_prompt += self._search_relevant_memory(search_prompt, reranker_query=user_prompt)
 
             self.pre_mem_prompt = mem_prompt
             if self.show_rag_detail:
                 print(mem_prompt)
-            # self.messages[0]['content'] = self.system_prompt + '\n\n' + mem_prompt
 
-            user_prompt = mem_prompt + '\n\n' + user_prompt
-        # else:
-        #     self.messages[0]['content'] = self.system_prompt
+            user_prompt = mem_prompt + '\n\n' + self.user_name + "：" + user_prompt
 
         # LLM通信
         self.messages.append({"role": "user", "content": user_prompt})
@@ -148,13 +149,16 @@ class RoleAgent:
         self.messages.append({"role": "assistant", "content": res})
         return res
 
-    def _search_relevant_memory(self, prompt):
-        docs_and_scores = self.retrieval.search(prompt, top_k=self.rag_top_k)
+    def _search_relevant_memory(self, search_prompt, reranker_query):
+        docs_and_scores = self.retrieval.search(search_prompt,
+                                                reranker_query=reranker_query,
+                                                embedding_top_k=self.embedding_top_k,
+                                                reranker_top_k=self.rag_top_k)
         mem_prompt = ""
         kb_str = ''
         for i, doc in enumerate(docs_and_scores):
             kb_str += f"片段{str(i + 1)}：\n"
-            kb_str += doc.page_content
+            kb_str += doc[1]
             if i == len(docs_and_scores) - 1:
                 kb_str += '\n'
             else:
@@ -162,7 +166,7 @@ class RoleAgent:
             if len(kb_str) > self.kb_max_len:
                 break
         mem_prompt += kb_str
-        mem_prompt += "=" * 6 + "\n\n"
+        mem_prompt += "=" * 10 + "\n\n"
         return mem_prompt
 
     @staticmethod

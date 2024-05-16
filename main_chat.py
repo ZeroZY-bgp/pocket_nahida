@@ -1,4 +1,3 @@
-from datetime import datetime
 from agent import RoleAgent
 from config import base_config
 
@@ -12,6 +11,7 @@ USER_NAME = base_config.user_name
 
 def main_chat(agent, user_name):
     # agent.load_messages(path='history/2024-03-05_18-47-47.json')
+    agent.set_user_name(user_name)
     print("指令：\nc清空历史，\nn让纳西妲继续说，\nr让纳西妲重新说，\ns保存对话历史")
     while True:
         user_prompt = input(user_name + "：")
@@ -31,18 +31,15 @@ def main_chat(agent, user_name):
                 continue
         elif user_prompt == 's':
             if len(agent.messages) > 1:
-                # 记录时间
-                now = datetime.now()
-                history_path = "history/" + agent.messages[1]['content'] + now.strftime("%Y-%m-%d_%H-%M-%S.json")
-                agent.save_messages(history_path)
-                print(f"对话历史已保存于{history_path}。")
+                path = agent.save_messages()
+                print(f"对话历史已保存于{path}。")
             else:
                 print("没有对话，无法保存。")
             continue
         elif user_prompt == 'q':
             return
         else:
-            response = agent.chat(user_prompt=user_name + "：" + user_prompt if user_name != "" else user_prompt)
+            response = agent.chat(user_prompt)
 
         print(agent.role_name + "：" + response)
 
