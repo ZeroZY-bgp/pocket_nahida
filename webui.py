@@ -181,4 +181,4 @@ if __name__ == '__main__':
                            system_prompt=SYSTEM_PROMPT,
                            config=base_config)
     main_agent.set_user_name(DEFAULT_USER_NAME)
-    app.run(port=4000, debug=False)
+    app.run(host="0.0.0.0", port=4000, debug=False)
