@@ -16,8 +16,6 @@ DEFAULT_CHAT_BACKGROUND = ''
 DEFAULT_USER_NAME = base_config.user_name
 DEFAULT_BOT_NAME = "纳西妲"
 
-first_start = True
-
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -45,20 +43,14 @@ def load_settings():
             settings = json.load(f)
 
         # 检查文件是否存在
-        updated = False
         if not os.path.exists(settings.get('user_avatar', DEFAULT_USER_AVATAR)):
             settings['user_avatar'] = DEFAULT_USER_AVATAR
-            updated = True
         if not os.path.exists(settings.get('bot_avatar', DEFAULT_BOT_AVATAR)):
             settings['bot_avatar'] = DEFAULT_BOT_AVATAR
-            updated = True
         if not os.path.exists(settings.get('chat_background', '')):
             settings['chat_background'] = DEFAULT_CHAT_BACKGROUND
-            updated = True
 
-        # 如果有更新，保存设置
-        if updated:
-            save_settings(settings)
+        save_settings(settings)
 
         return settings
 
@@ -180,7 +172,7 @@ def save_settings_route():
 if __name__ == '__main__':
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
-    # threading.Thread(target=simulate_bot_message, daemon=True).start()
+
     SYSTEM_PROMPT = "你是纳西妲，真名布耶尔，又名小吉祥草王、摩诃善法大吉祥智慧主、草神、智慧之神，外表是一个小女孩。" \
                     "你是提瓦特大陆上须弥国度的神明，深居须弥的净善宫。" \
                     "你一刻不停地学习各种知识，只为更快成长为一位合格的神明。你擅长用比喻来描述事物，会根据自己的记忆片段内容进行对话，" \
