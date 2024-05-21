@@ -1,4 +1,5 @@
 import copy
+import os
 
 import torch
 from torch.utils.data import Dataset as TorchDataset
@@ -9,14 +10,13 @@ from transformers import TrainingArguments, Trainer, AutoTokenizer, TrainerCallb
 
 from utils import load_json
 
+# ====== 参数设置区域 ======
+
 dataset_path = "datas/sft.json"
-ori_model_path = "result/qwen1.5/1.8B/pretrain"
-log_dir = "result/qwen1.5/1.8B/sft"
+ori_model_path = "result/4B/pretrain"
+log_dir = "result/qwen1.5/4B/sft"
 
 torch_dtype = torch.bfloat16
-use_loss_threshold_filter = False
-loss_threshold = 2.5
-end_train_dataset_threshold = 0
 use_peft = False
 quantized = False
 
@@ -26,7 +26,7 @@ if use_peft:
         task_type=TaskType.CAUSAL_LM,
         target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
         inference_mode=False,
-        r=8,
+        r=16,
         lora_alpha=32,
         lora_dropout=0.1
     )
@@ -41,17 +41,24 @@ if quantized:
 
 training_args = TrainingArguments(
     output_dir=log_dir,
-    logging_steps=1,
     per_device_train_batch_size=2,
-    gradient_accumulation_steps=8,
-    num_train_epochs=3,
-    warmup_ratio=0.01,
+    gradient_accumulation_steps=16,
+    logging_steps=1,
+    bf16=True,
+    num_train_epochs=6,
     save_strategy="no",
-    learning_rate=2e-5,
-    gradient_checkpointing=True,
+    # warmup_steps=0,
+    warmup_ratio=0.1,
+    learning_rate=5e-5,
+    gradient_checkpointing=False,
     logging_dir=log_dir,
     save_total_limit=1
 )
+
+# ==================
+
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
 
 # 模型
 model = AutoModelForCausalLM.from_pretrained(ori_model_path,
@@ -62,8 +69,7 @@ model = AutoModelForCausalLM.from_pretrained(ori_model_path,
 if use_peft:
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
-
-model.enable_input_require_grads()
+# model.enable_input_require_grads()
 print(model)
 
 # 分词器
@@ -73,6 +79,7 @@ tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=False, trust_
 start_token_id = tokenizer.convert_tokens_to_ids('<|im_start|>')
 end_token_id = tokenizer.convert_tokens_to_ids('<|im_end|>')
 assistant_token_id = tokenizer.convert_tokens_to_ids('assistant')
+newline_token_id = tokenizer.convert_tokens_to_ids('\n')
 
 
 def multi_turn_process_func(messages):
@@ -131,52 +138,12 @@ class MessagesDataset(TorchDataset):
 # 加载多轮对话微调数据集
 all_data = load_json(dataset_path)
 train_dataset = MessagesDataset(all_data)
-eval_dataset = MessagesDataset(all_data)
-
-test_device = "cuda"
-
-
-class SelectiveTrainingCallback(TrainerCallback):
-    def __init__(self, model, train_dataset, loss_threshold):
-        self.loss_threshold = loss_threshold
-        self.ori_train_dataset = copy.deepcopy(train_dataset)
-        self.train_dataset = train_dataset
-        self.model = model
-
-    def evaluate_train_loss(self):
-        self.model.eval()
-        total_loss = 0.0
-        losses = []
-        for d in tqdm(self.ori_train_dataset):
-            with torch.no_grad():
-                outputs = self.model(input_ids=d['input_ids'].unsqueeze(0).to(test_device),
-                                     attention_mask=d['attention_mask'].unsqueeze(0).to(test_device),
-                                     labels=d["labels"].unsqueeze(0).to(test_device))
-                total_loss += outputs.loss
-                losses.append(outputs.loss.item())
-        test_avg_loss = total_loss / len(self.ori_train_dataset)
-        print(f"Test average loss: {test_avg_loss}")
-        return losses
-
-    def on_epoch_end(self, args, state, control, **kwargs):
-        if use_loss_threshold_filter:
-            losses = self.evaluate_train_loss()
-            indices = [i for i, loss in enumerate(losses) if loss > self.loss_threshold]
-            self.train_dataset.copy_from_dataset(self.ori_train_dataset)
-            self.train_dataset.subset(indices)
-            print(f"Dataset len: {len(self.train_dataset)}")
-            if len(self.train_dataset) <= end_train_dataset_threshold:
-                model.save_pretrained(log_dir)
-                tokenizer.save_pretrained(log_dir)
-                self.train_dataset.datas.clear()
-
 
 trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=train_dataset,
-    data_collator=DataCollatorForSeq2Seq(tokenizer=tokenizer, padding=True),
-    callbacks=[SelectiveTrainingCallback(model, train_dataset, loss_threshold)]
+    data_collator=DataCollatorForSeq2Seq(tokenizer=tokenizer, padding=True)
 )
 
 trainer.train()

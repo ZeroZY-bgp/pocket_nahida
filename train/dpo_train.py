@@ -1,4 +1,5 @@
 import copy
+import os
 
 import torch
 from datasets import Dataset
@@ -8,11 +9,12 @@ from trl import DPOTrainer
 
 from utils import load_json
 
+# ====== 参数设置区域 ======
 
 dataset_path = "datas/dpo.json"
-ori_model_path = r"result/qwen1.5/1.8B/sft"
+ori_model_path = r"result/qwen1.5/4B/sft"
 
-log_dir = "result/qwen1.5/1.8B/dpo"
+log_dir = "result/qwen1.5/4B/dpo"
 
 use_peft = False
 torch_dtype = torch.bfloat16
@@ -21,9 +23,9 @@ if use_peft:
     # peft设置
     peft_config = LoraConfig(
         task_type=TaskType.CAUSAL_LM,
-        # target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
         inference_mode=False,
-        r=8,
+        r=128,
         lora_alpha=32,
         lora_dropout=0.1
     )
@@ -43,6 +45,11 @@ training_args = TrainingArguments(
     save_total_limit=1,
     remove_unused_columns=False
 )
+
+# ==================
+
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
 
 # 模型
 model = AutoModelForCausalLM.from_pretrained(ori_model_path,
