@@ -41,6 +41,7 @@ class BaseConfig:
         self.rag_top_k = config_file.getint('RAG', 'rag_top_k')
         self.top_k_per_word = config_file.getint('RAG', 'top_k_per_word')
         self.kb_max_len = config_file.getint('RAG', 'kb_max_len')
+        self.dialog_window = config_file.getint('RAG', 'dialog_window')
         self.show_rag_detail = config_file.getboolean('RAG', 'show_rag_detail')
 
 

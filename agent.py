@@ -41,6 +41,7 @@ class RoleAgent:
         self.rag_top_k = config.rag_top_k
         self.top_k_per_word = config.top_k_per_word
         self.kb_max_len = config.kb_max_len
+        self.dialog_window = config.dialog_window if config.dialog_window > 0 else 3
         self.temperature = config.temperature
         self.max_new_tokens = config.max_new_tokens
 
@@ -147,6 +148,10 @@ class RoleAgent:
         self.messages.append({"role": "user", "content": user_prompt})
         res = self.model.chat(self.messages, self.temperature, self.max_new_tokens)
         self.messages.append({"role": "assistant", "content": res})
+        if len(self.messages) - 1 >= self.dialog_window * 2:
+            self.messages.pop(1)
+            self.messages.pop(1)
+        print(self.messages)
         return res
 
     def _search_relevant_memory(self, search_prompt, reranker_query):
