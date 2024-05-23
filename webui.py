@@ -16,6 +16,8 @@ DEFAULT_CHAT_BACKGROUND = ''
 DEFAULT_USER_NAME = base_config.user_name
 DEFAULT_BOT_NAME = "纳西妲"
 
+is_chatting = False
+
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -69,11 +71,14 @@ def index():
 
 @app.route('/chat', methods=['POST'])
 def chat():
+    global is_chatting
+    is_chatting = True
     user_input = request.json.get('message')
     messages.append({'sender': 'user', 'message': user_input})
     print(user_input)
     response_message = main_agent.chat(user_input)
     messages.append({'sender': 'bot', 'message': response_message})
+    is_chatting = False
     return jsonify({'response': response_message})
 
 
@@ -163,8 +168,11 @@ def get_messages():
 
 @app.route('/clear_messages', methods=['POST'])
 def clear_messages():
-    main_agent.clear_messages()
-    return jsonify({'status': 'success'})
+    if is_chatting:
+        main_agent.clear_messages()
+        return jsonify({'status': 'success'})
+    else:
+        return jsonify({'status': 'clear messages failed'})
 
 
 @app.route('/save_settings', methods=['POST'])
