@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>pocket nahida</title>
+    <title>口袋纳西妲</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -24,7 +24,7 @@
             background-color: #1e1e1e;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            width: 800px; /* 增加宽度 */
+            width: 1000px; /* 增加宽度 */
             max-width: 100%;
             padding: 20px;
             position: relative;
@@ -36,7 +36,7 @@
             color: #ffffff;
         }
         #messages {
-            height: 400px; /* 增加高度 */
+            height: 500px; /* 增加高度 */
             overflow-y: auto;
             padding: 10px;
             border: 1px solid #444;
@@ -181,34 +181,34 @@
             <h1>口袋纳西妲 v1.0</h1>
             <div id="messages"></div>
             <div id="inputContainer">
-                <textarea id="userInput" placeholder="Type your message here..." rows="1"></textarea>
+                <textarea id="userInput" placeholder="输入聊天信息……" rows="1"></textarea>
                 <input type="file" id="imageInput" accept="image/*" onchange="sendImage()"/>
-                <button onclick="sendMessage()">Send</button>
-                <button onclick="document.getElementById('imageInput').click()">Upload Image</button>
-                <button onclick="clearMessages()">Clear Messages</button>
+                <button onclick="sendMessage()">发送</button>
+<!--                <button onclick="document.getElementById('imageInput').click()">上传图片</button>-->
+                <button onclick="clearMessages()">清空聊天历史</button>
             </div>
         </div>
         <div id="settingsContainer">
-            <button id="settingsToggle" onclick="toggleSettings()">Upload Settings</button>
+            <button id="settingsToggle" onclick="toggleSettings()">上传图片素材</button>
             <div id="settings">
                 <input type="file" id="avatarInput" accept="image/*" onchange="uploadAvatar()"/>
-                <button onclick="document.getElementById('avatarInput').click()">Upload Avatar</button>
+                <button onclick="document.getElementById('avatarInput').click()">上传用户头像</button>
                 <input type="file" id="botAvatarInput" accept="image/*" onchange="uploadBotAvatar()"/>
-                <button onclick="document.getElementById('botAvatarInput').click()">Upload Bot Avatar</button>
+                <button onclick="document.getElementById('botAvatarInput').click()">上传纳西妲头像</button>
                 <input type="file" id="backgroundInput" accept="image/*" onchange="uploadBackground()"/>
-                <button onclick="document.getElementById('backgroundInput').click()">Upload Background</button>
+                <button onclick="document.getElementById('backgroundInput').click()">上传背景图片</button>
             </div>
-            <button id="nameSettingsToggle" onclick="toggleNameSettings()">Name Settings</button>
-            <div id="nameSettings">
-                <div class="input-row">
-                    <input type="text" id="usernameInput" placeholder="Enter User Name"/>
-                    <button onclick="updateUsername()">Set User Name</button>
-                </div>
-                <div class="input-row">
-                    <input type="text" id="botnameInput" placeholder="Enter Bot Name"/>
-                    <button onclick="updateBotname()">Set Bot Name</button>
-                </div>
-            </div>
+<!--            <button id="nameSettingsToggle" onclick="toggleNameSettings()">名字设置</button>-->
+<!--            <div id="nameSettings">-->
+<!--                <div class="input-row">-->
+<!--                    <input type="text" id="usernameInput" style="width: 20px;" placeholder=""/>-->
+<!--                    <button onclick="updateUsername()">设置用户名字</button>-->
+<!--                </div>-->
+<!--                <div class="input-row">-->
+<!--                    <input type="text" id="botnameInput" style="width: 20px;" placeholder=""/>-->
+<!--                    <button onclick="updateBotname()">设置纳西妲名字</button>-->
+<!--                </div>-->
+<!--            </div>-->
         </div>
     </div>
 
