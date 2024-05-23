@@ -380,8 +380,11 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        function clearMessages() {
-            document.getElementById('messages').innerHTML = '';
+        async function clearMessages() {
+            await fetch('/clear_messages', {
+                method: 'POST'
+            });
+            document.getElementById('messages').innerHTML = ''; // 清空前端显示
         }
 
         async function fetchMessages() {

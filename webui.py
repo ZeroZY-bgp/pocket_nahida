@@ -161,6 +161,12 @@ def get_messages():
     return jsonify({'messages': messages})
 
 
+@app.route('/clear_messages', methods=['POST'])
+def clear_messages():
+    main_agent.clear_messages()
+    return jsonify({'status': 'success'})
+
+
 @app.route('/save_settings', methods=['POST'])
 def save_settings_route():
     global settings

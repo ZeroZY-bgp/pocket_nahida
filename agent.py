@@ -151,7 +151,7 @@ class RoleAgent:
         if len(self.messages) - 1 >= self.dialog_window * 2:
             self.messages.pop(1)
             self.messages.pop(1)
-        print(self.messages)
+        # print(self.messages)
         return res
 
     def _search_relevant_memory(self, search_prompt, reranker_query):
