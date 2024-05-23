@@ -78,7 +78,7 @@ class Retrieval:
         return result_words
 
     def load_index(self, path):
-        self.vector_store = FAISS.load_local(path, self.embedding_model)
+        self.vector_store = FAISS.load_local(path, self.embedding_model, allow_dangerous_deserialization=True)
 
     def save_index(self, path):
         self.vector_store.save_local(path)
