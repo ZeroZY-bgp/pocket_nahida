@@ -2,7 +2,7 @@
 ## 简介   
 ![本地图片](pics/纳西妲表情.png)
 
-纳西妲对话虚拟人，带有原神世界观知识。模型的数据来源主要为原神中的世界观、游戏任务、角色信息等。   
+带有原神世界观知识的纳西妲对话虚拟人。模型的数据来源主要为原神中的世界观、游戏任务、角色信息等。   
 📕 预训练和用于RAG的数据来源于B站原神wiki，来源网站：[原神B站wiki](https://wiki.biligame.com/ys/%E9%A6%96%E9%A1%B5)。SFT数据通过AI生成、人工矫正构建。  
 🔆 默认演示模型为Lora微调的Qwen1.5-1.8B-Chat和Qwen1.5-4B-Chat，也可以使用GPT系列模型(需要api key，仅用于对比)，默认Embedding模型为[BAAI/bge-small-zh-v1.5](https://huggingface.co/BAAI/bge-small-zh-v1.5)，默认Rerank模型为[BAAI/bge-reranker-v2-m3](https://huggingface.co/BAAI/bge-reranker-v2-m3)。  
 ## 与纳西妲对话
@@ -19,16 +19,17 @@
 ```angular2html
 git clone https://github.com/ZeroZY-bgp/pocket_nahida.git
 ```
-进入pocket_nahida目录，创建虚拟环境：
+进入pocket_nahida目录，创建环境（建议使用conda环境）：
 ```angular2html
-create -n venv python=3.9
+cd pocket_nahida
+conda create --name pocket_nahida python=3.9
 pip install -r requirements.txt
 ```
 安装完成后，运行webui.py文件：
 ```angular2html
-python webui.py
+python3 webui.py
 ```
-💡 第一次运行系统会自动下载所需要的模型，模型下载默认从[huggingface](https://huggingface.co/)中下载，需要等待一段时间。模型默认下载路径在[config](config.ini)的model_cache_dir中
+💡 第一次运行系统会自动从huggingface上下载所需的模型，需要等待一段时间。模型默认下载路径在c盘，可通过修改[config](config.ini)文件的model_cache_dir改变模型存放路径。
 ## 💻需求
 - 模型硬件需求：  
 为了推理速度，建议使用GPU，Qwen1.5-1.8B模型建议显存为12GB，Qwen1.5-4B模型建议显存为16GB。
