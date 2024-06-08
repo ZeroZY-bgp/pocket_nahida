@@ -7,13 +7,15 @@
 🔆 默认演示模型为Lora微调的Qwen1.5-1.8B-Chat和Qwen1.5-4B-Chat，也可以使用GPT系列模型(需要api key，仅用于对比)，默认Embedding模型为[BAAI/bge-small-zh-v1.5](https://huggingface.co/BAAI/bge-small-zh-v1.5)，默认Rerank模型为[BAAI/bge-reranker-v2-m3](https://huggingface.co/BAAI/bge-reranker-v2-m3)。  
 ## 与纳西妲对话
 角色设定  
-![本地图片](pics/人物设定.png)
+![本地图片](pics/自我介绍.png)
 世界知识
-![本地图片](pics/人物关系.png)  
+![本地图片](pics/世界观1.png)  
+![本地图片](pics/世界观2.png)  
 认知观念  
-![本地图片](pics/认知观念.png)  
-道德准则  
-![本地图片](pics/道德准则.png)
+![本地图片](pics/认知1.png)  
+![本地图片](pics/认知2.png)  
+![本地图片](pics/认知3.png)
+![本地图片](pics/认知4.png)
 ## 🏎️开始  
 进入想要存放项目的目录，执行以下命令：
 ```angular2html
@@ -33,10 +35,15 @@ python3 webui.py
 💡 第一次运行系统会自动从huggingface上下载所需的模型，需要等待一段时间。模型默认下载路径在c盘，可通过修改[config](config.ini)文件的model_cache_dir改变模型存放路径。
 ## 💻需求
 - 模型硬件需求：  
-为了推理速度，建议使用GPU，Qwen1.5-1.8B模型建议显存为12GB，Qwen1.5-4B模型建议显存为16GB。
-- 默认使用的Embedding模型为BAAI/bge-small-zh-v1.5约占显存2G，可修改在CPU中运行。默认使用的Rerank模型为BAAI/bge-reranker-v2-m3约占显存2G，可修改在CPU中运行。   
+为了推理速度，建议使用GPU，Qwen1.5-1.8B模型建议显存为12GB，Qwen1.5-4B模型建议显存为16GB。默认使用的Embedding模型为BAAI/bge-small-zh-v1.5约占显存2G，可修改在CPU中运行。默认使用的Rerank模型为BAAI/bge-reranker-v2-m3约占显存2G，可修改在CPU中运行。   
 ## 🛠️高级  
-- [config.ini](config.ini) 可修改配置。如果配置不够可以将model_quantized改为True量化加载模型，但是对话效果会不理想。  
+- [config.ini](config.ini) 可修改配置。
+- 可选模型：
+  - ZeroZYbgp/pocket_nahida-4b-lora
+  - ZeroZYbgp/pocket_nahida-4b-lora2
+  - ZeroZYbgp/pocket_nahida-1.8b-lora
+  - ZeroZYbgp/pocket_nahida-1.8b-lora2
+- 如果配置不够可以将model_quantized改为True量化加载模型，但是对话效果会不理想。  
 - 如果你有自己的模型，可以将model_name_or_path改为你的模型路径（目前仅支持qwen1.5系列模型）。
 - 如果更换embedding模型，需要将first_load_memory改为True，重新构建向量知识库，之后的运行就可改为False。
 - [训练代码](train)及[数据](train/datas)均包含在项目中，包括增量预训练、SFT、DPO，可以自行训练模型（默认演示模型未使用DPO）。
