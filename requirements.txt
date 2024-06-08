@@ -10,12 +10,11 @@ langchain_community
 langchain
 jieba
 sentence-transformers
-faiss
+faiss-cpu
 huggingface_hub
 openai
 flask
 Flask-CORS
-torch==2.0.1+cu121
-torchvision==0.15.2+cu121
-torchaudio==2.0.2+cu121
--f https://download.pytorch.org/whl/cu121
+torch --index-url https://download.pytorch.org/whl/cu121
+torchvision --index-url https://download.pytorch.org/whl/cu121
+torchaudio --index-url https://download.pytorch.org/whl/cu121
