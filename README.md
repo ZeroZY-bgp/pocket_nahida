@@ -32,7 +32,7 @@ pip install -r requirements.txt
 ```angular2html
 python3 webui.py
 ```
-💡 第一次运行系统会自动从huggingface上下载所需的模型，需要等待一段时间。模型默认下载路径在c盘，可通过修改[config](config.ini)文件的model_cache_dir改变模型存放路径。
+💡 第一次运行系统会自动从huggingface上下载所需的模型，需要等待一段时间。模型默认下载路径在c盘，可通过修改[config.ini](config.ini) 文件的model_cache_dir改变模型存放路径。
 ## 💻需求
 - 模型硬件需求：  
 为了推理速度，建议使用GPU，Qwen1.5-1.8B模型建议显存为12GB，Qwen1.5-4B模型建议显存为16GB。默认使用的Embedding模型为BAAI/bge-small-zh-v1.5约占显存2G，可修改在CPU中运行。默认使用的Rerank模型为BAAI/bge-reranker-v2-m3约占显存2G，可修改在CPU中运行。   
