@@ -31,6 +31,10 @@ pip install -r requirements.txt
 ```angular2html
 python3 webui.py
 ```
+纯python运行方式：
+```angular2html
+python3 main_chat.py
+```
 💡 第一次运行系统会自动从huggingface上下载所需的模型，需要等待一段时间。模型默认下载路径在c盘，可通过修改[config.ini](config.ini) 文件的model_cache_dir改变模型存放路径。
 ## 💻需求
 - 模型硬件需求：  
