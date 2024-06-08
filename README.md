@@ -39,10 +39,12 @@ python3 webui.py
 ## 🛠️高级  
 - [config.ini](config.ini) 可修改配置。
 - 可选模型：
-  - ZeroZYbgp/pocket_nahida-4b-lora
-  - ZeroZYbgp/pocket_nahida-4b-lora2
-  - ZeroZYbgp/pocket_nahida-1.8b-lora
-  - ZeroZYbgp/pocket_nahida-1.8b-lora2
+  - 仅PT（也能用于对话）
+    - ZeroZYbgp/pocket_nahida-4b-lora
+    - ZeroZYbgp/pocket_nahida-1.8b-lora
+  - PT+SFT
+    - ZeroZYbgp/pocket_nahida-4b-lora2
+    - ZeroZYbgp/pocket_nahida-1.8b-lora2
 - 如果显存不够可以将model_quantized设置为True量化加载模型，但对话效果会不理想。也可以缩小窗口大小dialog_window以节省显存。
 - 如果你有自己的模型，可以将model_name_or_path改为你的模型路径（目前仅支持qwen1.5系列模型）。
 - 如果更换embedding模型，需要将first_load_memory改为True，重新构建向量知识库，之后的运行就可改为False。
