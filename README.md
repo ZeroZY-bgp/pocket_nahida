@@ -35,7 +35,7 @@ python3 webui.py
 ```angular2html
 python3 main_chat.py
 ```
-💡 第一次运行系统会自动从huggingface上下载所需的模型，需要等待一段时间。模型默认下载路径在c盘，可通过修改[config.ini](config.ini) 文件的model_cache_dir改变模型存放路径。
+💡 第一次运行会自动从huggingface上下载所需的模型，需要等待一段时间。模型会默认下载在.cache文件夹中，可通过修改[config.ini](config.ini) 的model_cache_dir改变模型存放路径。
 ## 💻需求
 - 模型硬件需求：  
 为了推理速度，建议使用GPU，Qwen1.5-1.8B模型建议显存为12GB以上，Qwen1.5-4B模型建议显存为16GB以上。
