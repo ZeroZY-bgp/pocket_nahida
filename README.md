@@ -1,17 +1,16 @@
 # 口袋纳西妲——和小草神纳西妲一起聊天
-## 简介   
 ![本地图片](pics/纳西妲表情.png)
-
+## 简介
 🌱 带有原神世界观知识的纳西妲对话虚拟人。   
 📕 预训练和用于RAG的数据来源于[B站原神wiki](https://wiki.biligame.com/ys/%E9%A6%96%E9%A1%B5)，主要包含角色信息、世界知识、剧情对话等。SFT数据通过AI生成、人工矫正构建。  
 🔆 默认演示模型为Lora微调的Qwen1.5-1.8B-Chat和Qwen1.5-4B-Chat，也可以使用GPT系列模型(需要api key，仅用于对比)。默认Embedding模型为[BAAI/bge-small-zh-v1.5](https://huggingface.co/BAAI/bge-small-zh-v1.5)，默认Rerank模型为[BAAI/bge-reranker-v2-m3](https://huggingface.co/BAAI/bge-reranker-v2-m3)。  
 ## 与纳西妲对话
-角色设定  
+- 角色设定  
 ![本地图片](pics/自我介绍.png)
-世界知识
+- 世界知识
 ![本地图片](pics/世界观1.png)  
 ![本地图片](pics/世界观2.png)  
-认知观念  
+- 认知观念  
 ![本地图片](pics/认知1.png)  
 ![本地图片](pics/认知2.png)  
 ![本地图片](pics/认知3.png)
