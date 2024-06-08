@@ -23,6 +23,7 @@ git clone https://github.com/ZeroZY-bgp/pocket_nahida.git
 ```angular2html
 cd pocket_nahida
 conda create --name pocket_nahida python=3.9
+conda activate pocket_nahida
 pip install -r requirements.txt
 ```
 安装完成后，运行webui.py文件：
