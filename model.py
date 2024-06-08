@@ -1,6 +1,7 @@
 import torch
 import openai
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from peft import PeftModel, PeftConfig
 
 
 class QwenModel:
@@ -18,20 +19,47 @@ class QwenModel:
                 bnb_4bit_use_double_quant=True,
                 bnb_4bit_compute_dtype=torch.bfloat16
             )
-        self.model = AutoModelForCausalLM.from_pretrained(model_name_or_path,
-                                                          device_map=device,
-                                                          torch_dtype=torch.bfloat16,
-                                                          trust_remote_code=False,
-                                                          token=token,
-                                                          cache_dir=cache_dir,
-                                                          quantization_config=nf4_config if quantized else None
-                                                          )
-        tokenizer_path = self.model.config.name_or_path
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path,
-                                                       use_fast=False,
-                                                       trust_remote_code=True,
-                                                       token=token,
-                                                       cache_dir=cache_dir)
+        try:
+            # 尝试加载为 LoRA 模型
+            config = PeftConfig.from_pretrained(model_name_or_path,
+                                                device_map=device,
+                                                torch_dtype=torch.bfloat16,
+                                                trust_remote_code=True,
+                                                token=token,
+                                                cache_dir=cache_dir)
+            base_model = AutoModelForCausalLM.from_pretrained(config.base_model_name_or_path,
+                                                              device_map=device,
+                                                              torch_dtype=torch.bfloat16,
+                                                              trust_remote_code=True,
+                                                              token=token,
+                                                              cache_dir=cache_dir,
+                                                              quantization_config=nf4_config if quantized else None)
+            self.model = PeftModel.from_pretrained(base_model, model_name_or_path)
+            # 获取基础模型路径
+            self.tokenizer = AutoTokenizer.from_pretrained(config.base_model_name_or_path,
+                                                           use_fast=False,
+                                                           trust_remote_code=True,
+                                                           token=token,
+                                                           cache_dir=cache_dir)
+            print(f"Loaded LoRA model from {model_name_or_path} with base model {config.base_model_name_or_path}")
+        except Exception as e:
+            # 如果加载 LoRA 模型失败，则尝试加载为普通模型
+            print(f"Error loading LoRA model: {e}")
+            self.model = AutoModelForCausalLM.from_pretrained(model_name_or_path,
+                                                              device_map=device,
+                                                              torch_dtype=torch.bfloat16,
+                                                              trust_remote_code=True,
+                                                              token=token,
+                                                              cache_dir=cache_dir,
+                                                              quantization_config=nf4_config if quantized else None
+                                                              )
+            tokenizer_path = self.model.config.name_or_path
+            self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path,
+                                                           use_fast=False,
+                                                           trust_remote_code=True,
+                                                           token=token,
+                                                           cache_dir=cache_dir)
+            print(f"Loaded base model from {model_name_or_path}")
         self.device = device
 
     def chat(self, messages, temperature=0.6, max_new_tokens=512):
