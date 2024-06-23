@@ -50,6 +50,7 @@ python3 main_chat.py
     - ZeroZYbgp/pocket_nahida-1.8b-lora2
     - ZeroZYbgp/pocket_nahida2-1.5b-lora（推荐）
 - 如果显存不够可以将model_quantized设置为True量化加载模型，但对话效果会不理想。也可以缩小窗口大小dialog_window以节省显存。
+- 将rag_top_k（知识库检索）设为0可用于无事实相关的闲聊。若rag_top_k > 0, embedding_top_k降低可加快回答速度，但会牺牲知识库召回效果。
 - 如果你有自己的模型，可以将model_name_or_path改为你的模型路径（目前仅支持qwen1.5、qwen2系列模型）。
 - 如果更换embedding模型，需要将first_load_memory改为True，重新构建向量知识库，之后的运行就可改为False。
 - [训练代码](train)及[数据](train/datas)均包含在项目中，包括增量预训练、SFT、DPO，可以自行训练模型（默认演示模型未使用DPO）。
