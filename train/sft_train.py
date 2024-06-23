@@ -13,8 +13,11 @@ from utils import load_json
 # ====== 参数设置区域 ======
 
 dataset_path = "datas/sft.json"
-ori_model_path = "result/4B/pretrain"
-log_dir = "result/qwen1.5/4B/sft"
+ori_model_path = "result/qwen2/1.5B/pretrain"
+log_dir = "result/qwen2/1.5B/sft"
+
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
 
 torch_dtype = torch.bfloat16
 use_peft = False
@@ -26,7 +29,7 @@ if use_peft:
         task_type=TaskType.CAUSAL_LM,
         target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
         inference_mode=False,
-        r=16,
+        r=64,
         lora_alpha=32,
         lora_dropout=0.1
     )
@@ -41,15 +44,15 @@ if quantized:
 
 training_args = TrainingArguments(
     output_dir=log_dir,
-    per_device_train_batch_size=2,
-    gradient_accumulation_steps=16,
+    per_device_train_batch_size=1,
+    gradient_accumulation_steps=4,
     logging_steps=1,
     bf16=True,
     num_train_epochs=6,
     save_strategy="no",
     # warmup_steps=0,
     warmup_ratio=0.1,
-    learning_rate=5e-5,
+    learning_rate=1e-4,
     gradient_checkpointing=False,
     logging_dir=log_dir,
     save_total_limit=1

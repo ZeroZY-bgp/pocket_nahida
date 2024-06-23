@@ -7,15 +7,20 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset as TorchDataset
 from peft import LoraConfig, TaskType, get_peft_model
 from tqdm import tqdm
-from transformers import TrainingArguments, Trainer, AutoTokenizer, TrainerCallback, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import TrainingArguments, Trainer, AutoTokenizer, TrainerCallback, AutoModelForCausalLM, \
+    BitsAndBytesConfig
 
 from utils import load_json, calc_total_params
 
 # ====== 参数设置区域 ======
 
 dataset_path = "datas/pretrain.json"
-ori_model_path = "Qwen/Qwen1.5-4B-Chat"
-log_dir = "result/qwen1.5/4B/pretrain"
+ori_model_path = "Qwen/Qwen2-1.5B-Instruct"
+model_cache_dir = ""
+log_dir = "result/qwen2/1.5B/pretrain"
+
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
 
 torch_dtype = torch.bfloat16
 use_peft = True
@@ -27,7 +32,7 @@ if use_peft:
         task_type=TaskType.CAUSAL_LM,
         target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
         inference_mode=False,
-        r=128,
+        r=64,
         lora_alpha=32,
         lora_dropout=0.1
     )
@@ -47,7 +52,7 @@ training_args = TrainingArguments(
     bf16=True,
     per_device_train_batch_size=2,
     gradient_accumulation_steps=4,
-    num_train_epochs=16,
+    num_train_epochs=6,
     warmup_ratio=0.1,
     evaluation_strategy="no",
     save_strategy="no",
@@ -63,6 +68,7 @@ if not os.path.exists(log_dir):
 
 # 加载原始模型
 model = AutoModelForCausalLM.from_pretrained(ori_model_path,
+                                             cache_dir=model_cache_dir,
                                              torch_dtype=torch_dtype,
                                              trust_remote_code=True)
 if use_peft:
