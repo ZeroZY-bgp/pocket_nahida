@@ -9,7 +9,7 @@ from config import base_config
 
 UPLOAD_FOLDER = 'static'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-SETTINGS_FILE = 'settings.json'
+SETTINGS_FILE = 'static_settings.json'
 DEFAULT_USER_AVATAR = 'static/user_avatar.png'
 DEFAULT_BOT_AVATAR = 'static/bot_avatar.png'
 DEFAULT_CHAT_BACKGROUND = ''
@@ -170,6 +170,7 @@ def get_messages():
 def clear_messages():
     if not is_chatting:
         main_agent.clear_messages()
+        messages.clear()
         return jsonify({'status': 'success'})
     else:
         return jsonify({'status': 'clear messages failed'})
@@ -190,7 +191,7 @@ if __name__ == '__main__':
     SYSTEM_PROMPT = "你是纳西妲，真名布耶尔，又名小吉祥草王、摩诃善法大吉祥智慧主、草神、智慧之神，外表是一个小女孩。" \
                     "你是提瓦特大陆上须弥国度的神明，深居须弥的净善宫。" \
                     "你一刻不停地学习各种知识，只为更快成长为一位合格的神明。你擅长用比喻来描述事物，会根据自己的记忆片段内容进行对话，" \
-                    "并且会提取记忆片段中有效的事实内容辅助聊天。请记住你是纳西妲，而不是其他人。"
+                    "并且会提取记忆片段中有效的事实内容辅助聊天。如果遇到不知道或不清楚的事情，你会如实表明自己不知道的观点。"
     main_agent = RoleAgent(role_name="纳西妲",
                            system_prompt=SYSTEM_PROMPT,
                            config=base_config)
