@@ -54,13 +54,14 @@
         #messages .message-container {
             display: flex;
             align-items: flex-start;
-            margin: 5px 0;
+            margin: 10px 0;
         }
         #messages .message {
             padding: 10px;
             border-radius: 4px;
             max-width: 70%;
             word-wrap: break-word;
+            white-space: normal;
         }
         #messages .bot {
             background-color: #444;
@@ -241,19 +242,32 @@
             const userInput = document.getElementById('userInput').value;
             if (userInput.trim() === '') return;
 
+            // 发送用户消息并创建新的对话框
             displayMessage(userName, userInput, 'user');
             document.getElementById('userInput').value = '';
             document.getElementById('userInput').style.height = '40px'; // 重置输入框高度
 
-            const response = await fetch('/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message: userInput })
-            });
-            const data = await response.json();
-            displayMessage(botName, data.response, 'bot');
+            const url = new URL('/chat', window.location.origin);
+            url.searchParams.append('message', userInput);
+
+            // 关闭之前的 EventSource 连接
+            if (window.currentEventSource) {
+                window.currentEventSource.close();
+                endStreamingMessage(); // 结束当前对话流
+            }
+
+            // 创建新的 EventSource 连接
+            const eventSource = new EventSource(url);
+            window.currentEventSource = eventSource;
+
+            eventSource.onmessage = function(event) {
+                displayMessage(botName, event.data, 'bot', true);
+            };
+            eventSource.onerror = function(event) {
+                console.error("EventSource failed:", event);
+                eventSource.close();
+                endStreamingMessage(); // 结束当前对话流
+            };
         }
 
         async function sendImage() {
@@ -330,7 +344,66 @@
             await saveSettings();
         }
 
-        function displayMessage(sender, message, type) {
+        function displayMessage(sender, message, type, isStreaming = false) {
+            const messagesDiv = document.getElementById('messages');
+            let messageContainer = isStreaming ? document.getElementById('streaming-message') : null;
+
+            if (!messageContainer) {
+                messageContainer = document.createElement('div');
+                if (isStreaming) {
+                    messageContainer.id = 'streaming-message';
+                }
+                messageContainer.className = 'message-container';
+
+                const avatar = document.createElement('img');
+                avatar.className = 'avatar';
+                avatar.src = type === 'user' ? userAvatar : botAvatar;
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${type}`;
+                messageDiv.id = isStreaming ? 'streaming-message-content' : '';
+                messageDiv.innerHTML = `<p><strong>${sender}:</strong> <span class="message-text">${message}</span></p>`;
+
+                if (type === 'user') {
+                    messageContainer.appendChild(messageDiv);
+                    messageContainer.appendChild(avatar);
+                } else {
+                    messageContainer.appendChild(avatar);
+                    messageContainer.appendChild(messageDiv);
+                }
+
+                messagesDiv.appendChild(messageContainer);
+            } else {
+                const messageText = document.querySelector('#streaming-message-content .message-text');
+                messageText.innerHTML += message;
+            }
+
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function endStreamingMessage() {
+            const streamingMessage = document.getElementById('streaming-message');
+            if (streamingMessage) {
+                streamingMessage.removeAttribute('id');
+                const streamingMessageContent = document.getElementById('streaming-message-content');
+                if (streamingMessageContent) {
+                    streamingMessageContent.removeAttribute('id');
+                }
+            }
+        }
+
+        function endStreamingMessage() {
+            const streamingMessage = document.getElementById('streaming-message');
+            if (streamingMessage) {
+                streamingMessage.removeAttribute('id');
+                const streamingMessageContent = document.getElementById('streaming-message-content');
+                if (streamingMessageContent) {
+                    streamingMessageContent.removeAttribute('id');
+                }
+            }
+        }
+
+        function displayUserMessage(sender, message, type) {
             const messagesDiv = document.getElementById('messages');
             const messageContainer = document.createElement('div');
             messageContainer.className = 'message-container';

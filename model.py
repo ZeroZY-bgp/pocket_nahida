@@ -1,7 +1,19 @@
+import copy
+import warnings
+from threading import Thread
+from typing import Optional, Callable, List, Dict
+
 import torch
 import openai
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig, TextIteratorStreamer
+from transformers.generation.logits_process import LogitsProcessor
+from transformers.utils import logging, is_torch_npu_available
+from transformers.generation.utils import LogitsProcessorList, StoppingCriteriaList, GenerationConfig, ModelOutput
 from peft import PeftModel, PeftConfig
+
+from huggingface_hub import InferenceClient
+
+logger = logging.get_logger(__name__)
 
 
 class QwenModel:
@@ -61,6 +73,26 @@ class QwenModel:
                                                            cache_dir=cache_dir)
             print(f"Loaded base model from {model_name_or_path}")
         self.device = device
+        self.eos_token = '<|im_end|>'
+        self.streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True)
+
+    def stream_chat(self, messages, temperature=0.6, max_new_tokens=512):
+        text = self.tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
+            pad_token_id=self.tokenizer.eos_token_id
+        )
+        model_inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
+        generation_kwargs = dict(model_inputs, streamer=self.streamer, temperature=temperature, max_new_tokens=max_new_tokens)
+        thread = Thread(target=self.model.generate, kwargs=generation_kwargs)
+
+        with torch.no_grad():
+            thread.start()
+            for chunk in self.streamer:
+                if self.eos_token in chunk:
+                    chunk = chunk.replace(self.eos_token, '')
+                yield chunk
 
     def chat(self, messages, temperature=0.6, max_new_tokens=512):
         text = self.tokenizer.apply_chat_template(
@@ -79,6 +111,7 @@ class QwenModel:
                 max_new_tokens=max_new_tokens,
                 use_cache=True
             )
+
         generated_ids = [
             output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
         ]
@@ -119,10 +152,10 @@ class GPTModel:
                 'completion_tokens': self.cur_completion_tokens,
                 'total_tokens': self.cur_total_tokens}
 
-    def send_stream(self, massages):
+    def send_stream(self, messages):
         for chunk in openai.ChatCompletion.create(
                 model=self.model_name,
-                messages=massages,
+                messages=messages,
                 temperature=self.temperature,
                 max_tokens=self.max_token,
                 stream=True,

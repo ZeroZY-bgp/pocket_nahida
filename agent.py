@@ -15,32 +15,40 @@ class RoleAgent:
                  role_name,
                  system_prompt,
                  config):
-
+        self.config = config
         self.role_name = role_name
         self.user_name = "旅行者"
         self.system_prompt = system_prompt
 
         self.first_user_prompt = ""  # 记录第一条用户提问，用于保存对话历史
+        self.rag_top_k = config.rag_top_k
+        self.embedding_top_k = config.embedding_top_k
+        self.top_k_per_word = config.top_k_per_word
+        self.kb_max_len = config.kb_max_len
+        self.show_rag_detail = config.show_rag_detail
 
-        self.retrieval = Retrieval(config.embedding_model_name_or_path, config.embedding_device,
-                                   config.reranker_model_name_or_path, config.reranker_device)
+        # 加载embedding和知识库部分
+        if self.rag_top_k > 0:
+            self.retrieval = Retrieval(config.embedding_model_name_or_path, config.embedding_device,
+                                       config.reranker_model_name_or_path, config.reranker_device)
 
-        if config.first_load_memory and config.first_load_kb_path and config.idx_kb_path:
-            self.first_load_memory(kb_path=config.first_load_kb_path,
-                                   idx_kb_path=config.idx_kb_path)
-            print(f"New kb index saved to {config.idx_kb_path}")
-        elif config.idx_kb_path:
-            self.retrieval.load_index(config.idx_kb_path)
+            if config.first_load_memory and config.first_load_kb_path and config.idx_kb_path:
+                self.first_load_memory(kb_path=config.first_load_kb_path,
+                                       idx_kb_path=config.idx_kb_path)
+                print(f"New kb index saved to {config.idx_kb_path}")
+            elif config.idx_kb_path:
+                self.retrieval.load_index(config.idx_kb_path)
+
+            if config.keywords_path:
+                self.genshin_words = utils.load_json(config.keywords_path)
+                self._load_n_words(self.genshin_words)
+                self.retrieval.load_n_lst(self.genshin_words)
 
         self.default_messages = [
             {"role": "system", "content": system_prompt}
         ]
         self.messages = copy.deepcopy(self.default_messages)
 
-        self.embedding_top_k = config.embedding_top_k
-        self.rag_top_k = config.rag_top_k
-        self.top_k_per_word = config.top_k_per_word
-        self.kb_max_len = config.kb_max_len
         self.dialog_window = config.dialog_window if config.dialog_window > 0 else 3
         self.temperature = config.temperature
         self.max_new_tokens = config.max_new_tokens
@@ -57,12 +65,7 @@ class RoleAgent:
                                    device=config.llm_device,
                                    token=config.hf_token)
 
-        if config.keywords_path:
-            self.genshin_words = utils.load_json(config.keywords_path)
-            self._load_n_words(self.genshin_words)
-            self.retrieval.load_n_lst(self.genshin_words)
         self.pre_mem_prompt = ""
-        self.show_rag_detail = config.show_rag_detail
 
     def first_load_memory(self, kb_path, idx_kb_path):
         # 选择加载的知识库类型
@@ -146,12 +149,17 @@ class RoleAgent:
 
         # LLM通信
         self.messages.append({"role": "user", "content": user_prompt})
-        res = self.model.chat(self.messages, self.temperature, self.max_new_tokens)
+
+        res = ''
+        for chunk in self.model.stream_chat(self.messages, self.temperature, self.max_new_tokens):
+            res += chunk
+            yield chunk
+
         self.messages.append({"role": "assistant", "content": res})
+
         if len(self.messages) - 1 >= self.dialog_window * 2:
             self.messages.pop(1)
             self.messages.pop(1)
-        # print(self.messages)
         return res
 
     def _search_relevant_memory(self, search_prompt, reranker_query):

@@ -1,9 +1,9 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 import os
 import json
 from werkzeug.utils import secure_filename
-
 from agent import RoleAgent
 from config import base_config
 
@@ -20,6 +20,9 @@ is_chatting = False
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app)
+
+socketio = SocketIO(app)
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 messages = []
@@ -69,17 +72,38 @@ def index():
     return send_from_directory('static', 'index.html')
 
 
-@app.route('/chat', methods=['POST'])
+# @app.route('/chat', methods=['POST'])
+# def chat():
+#     global is_chatting
+#     is_chatting = True
+#     user_input = request.json.get('message')
+#     messages.append({'sender': 'user', 'message': user_input})
+#     print(user_input)
+#     response_message = main_agent.chat(user_input)
+#     messages.append({'sender': 'bot', 'message': response_message})
+#     is_chatting = False
+#     return jsonify({'response': response_message})
+
+
+@app.route('/chat', methods=['GET'])
 def chat():
     global is_chatting
     is_chatting = True
-    user_input = request.json.get('message')
+    user_input = request.args.get('message')
     messages.append({'sender': 'user', 'message': user_input})
     print(user_input)
-    response_message = main_agent.chat(user_input)
-    messages.append({'sender': 'bot', 'message': response_message})
-    is_chatting = False
-    return jsonify({'response': response_message})
+
+    def generate():
+        global is_chatting
+        response_message = ''
+        for chunk in main_agent.chat(user_input):
+            response_message += chunk
+            print(chunk, end='')
+            yield f"data: {chunk}\n\n"
+        messages.append({'sender': 'bot', 'message': response_message})
+        is_chatting = False
+
+    return Response(generate(), content_type='text/event-stream')
 
 
 @app.route('/upload_image', methods=['POST'])
@@ -196,4 +220,4 @@ if __name__ == '__main__':
                            system_prompt=SYSTEM_PROMPT,
                            config=base_config)
     main_agent.set_user_name(DEFAULT_USER_NAME)
-    app.run(host="0.0.0.0", port=4000, debug=False)
+    app.run(host="0.0.0.0", port=5301, debug=False)
