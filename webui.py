@@ -98,7 +98,8 @@ def chat():
         response_message = ''
         for chunk in main_agent.chat(user_input):
             response_message += chunk
-            print(chunk, end='')
+            # print(chunk, end='')
+            chunk = chunk.replace("\n", "<br>")
             yield f"data: {chunk}\n\n"
         messages.append({'sender': 'bot', 'message': response_message})
         is_chatting = False
