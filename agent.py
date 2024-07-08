@@ -30,7 +30,8 @@ class RoleAgent:
         # 加载embedding和知识库部分
         if self.rag_top_k > 0:
             self.retrieval = Retrieval(config.embedding_model_name_or_path, config.embedding_device,
-                                       config.reranker_model_name_or_path, config.reranker_device)
+                                       config.reranker_model_name_or_path, config.reranker_device,
+                                       config.model_cache_dir)
 
             if config.first_load_memory and config.first_load_kb_path and config.idx_kb_path:
                 self.first_load_memory(kb_path=config.first_load_kb_path,
