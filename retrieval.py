@@ -7,10 +7,12 @@ import torch
 
 class Reranker:
 
-    def __init__(self, reranker_model_name, device):
+    def __init__(self, reranker_model_name, device, cache_dir=None):
         self.device = device
         self.tokenizer = AutoTokenizer.from_pretrained(reranker_model_name)
-        self.model = AutoModelForSequenceClassification.from_pretrained(reranker_model_name, device_map=device)
+        self.model = AutoModelForSequenceClassification.from_pretrained(reranker_model_name,
+                                                                        cache_dir=cache_dir,
+                                                                        device_map=device)
         self.model.eval()
 
     @staticmethod
@@ -36,10 +38,11 @@ class Reranker:
 class Retrieval:
 
     def __init__(self, embedding_model_name, embedding_device,
-                 reranker_model_name, reranker_device):
+                 reranker_model_name, reranker_device, cache_dir=None):
         self.embedding_model = HuggingFaceEmbeddings(model_name=embedding_model_name,
+                                                     cache_folder=cache_dir,
                                                      model_kwargs={'device': embedding_device})
-        self.reranker = Reranker(reranker_model_name, reranker_device)
+        self.reranker = Reranker(reranker_model_name, reranker_device, cache_dir)
         self.documents = None
         self.split_docs = None
         self.faiss = FAISS
